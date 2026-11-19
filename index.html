@@ -108,6 +108,11 @@
           <button onclick="launchPlatformSearch('janpara')" class="px-2 py-0.5 rounded bg-sky-600/80 hover:bg-sky-600 text-white font-medium">じゃんぱら</button>
           <button onclick="launchPlatformSearch('hardoff')" class="px-2 py-0.5 rounded bg-teal-600/80 hover:bg-teal-600 text-white font-medium">HardOff</button>
           <button onclick="launchPlatformSearch('apple_refurb')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-white font-medium">Apple官翻</button>
+          <button onclick="launchPlatformSearch('yahoo_shop')" class="px-2 py-0.5 rounded bg-pink-600/80 hover:bg-pink-600 text-white font-medium">Y!購物</button>
+          <button onclick="launchPlatformSearch('rakuten')" class="px-2 py-0.5 rounded bg-rose-700/80 hover:bg-rose-700 text-white font-medium">楽天</button>
+          <button onclick="launchPlatformSearch('kakaku')" class="px-2 py-0.5 rounded bg-indigo-600/80 hover:bg-indigo-600 text-white font-medium">価格.com</button>
+          <button onclick="launchPlatformSearch('amazon_jp')" class="px-2 py-0.5 rounded bg-yellow-600/80 hover:bg-yellow-600 text-white font-medium">Amazon JP</button>
+          <button onclick="launchPlatformSearch('smzdm')" class="px-2 py-0.5 rounded bg-red-700/80 hover:bg-red-700 text-white font-medium">值得买</button>
         </div>
       </div>
     </div>
@@ -201,8 +206,12 @@
           <option value="Mercari">Mercari (メルカリ)</option>
           <option value="Yahoo!オークション">Yahoo!オークション</option>
           <option value="Yahoo!フリマ">Yahoo!フリマ</option>
-          <option value="日本中古店">日本中古店 (じゃんぱら/ソフマップ/イオシス等)</option>
-          <option value="电器量贩店">电器量贩店 (展示品/Outlet/整备品/特价)</option>
+          <option value="日本中古店">日本中古店 (じゃんぱら/HardOff等)</option>
+          <option value="电器量贩店">电器量贩店 (展示品/Outlet/Apple官翻)</option>
+          <option value="Yahoo!ショッピング">Yahoo!ショッピング</option>
+          <option value="楽天市場">楽天市場</option>
+          <option value="価格.com">価格.com</option>
+          <option value="国内好价(SMZDM)">国内好价 (什么值得买/京东/拼多多)</option>
         </select>
 
         <select id="filterBrand" onchange="renderAll()" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
@@ -333,6 +342,10 @@
                 <option value="Yahoo!フリマ">Yahoo!フリマ</option>
                 <option value="日本中古店">日本中古店</option>
                 <option value="电器量贩店">电器量贩店</option>
+                <option value="Yahoo!ショッピング">Yahoo!ショッピング</option>
+                <option value="楽天市場">楽天市場</option>
+                <option value="価格.com">価格.com</option>
+                <option value="国内好价(SMZDM)">国内好价(SMZDM)</option>
               </select>
             </div>
             <div>
@@ -1189,8 +1202,13 @@
         yahoo_auc: `https://auctions.yahoo.co.jp/search/search?p=${kw}${excl ? `&ve=${excl}` : ''}&s1=new&o1=d`,
         yahoo_flea: `https://paypayfleamarket.yahoo.co.jp/search/${kw}?open=1&sort=openTime&order=desc`,
         janpara: `https://www.janpara.co.jp/sale/search/result/?SSHPCODE=&OUTCLSCODE=&KEYWORDS=${kw}&CHKOUTCOM=1`,
-        hardoff: `https://netmall.hardoff.co.jp/search/?q=${kw}&s=7`,
-        apple_refurb: `https://www.apple.com/jp/shop/refurbished/mac`
+        hardoff: `https://netmall.hardoff.co.jp/search/?q=${kw}&s=7&ex_so=1`,
+        apple_refurb: `https://www.apple.com/jp/shop/refurbished/mac`,
+        yahoo_shop: `https://shopping.yahoo.co.jp/search?p=${kw}&X=2`,
+        rakuten: `https://search.rakuten.co.jp/search/mall/${kw}/?s=2&f=1`,
+        kakaku: `https://search.kakaku.com/${kw}/?category=0001&sort=priceb`,
+        amazon_jp: `https://www.amazon.co.jp/s?k=${kw}&s=price-asc-rank`,
+        smzdm: `https://search.smzdm.com/?c=faxian&s=${kw}&order=time&v=b`
       };
       if (urls[platform]) window.open(urls[platform], '_blank', 'noopener');
     }
