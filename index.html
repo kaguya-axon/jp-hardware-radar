@@ -1701,7 +1701,7 @@ ${questions.join('\n')}
           const retained = items.filter(it => {
             if (feedIds.has(it.id)) return false;
             if (it.isSample) {
-              return Boolean(it.userEdited || it.favorite || (it.status && it.status !== '未联系') || (it.replies && it.replies.length > 0));
+              return Boolean(it.userEdited);
             }
             if (!it.autoDetected) return true;
             return Boolean(it.userEdited || it.favorite || (it.status && it.status !== '未联系') || (it.replies && it.replies.length > 0));
