@@ -1,0 +1,1742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JP Hardware Deal Radar · 日本高端硬件捡漏与比价工作台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', 'Noto Sans SC', sans-serif;
+      background-color: #F4F6F9;
+      color: #0F172A;
+    }
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #E2E8F0; }
+    ::-webkit-scrollbar-thumb { background: #94A3B8; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #64748B; }
+    .badge-unverified {
+      background-color: #FEF3C7;
+      color: #B45309;
+      border: 1px dashed #F59E0B;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Top Navigation Bar (Google Sites Style Sticky Header) -->
+  <header class="sticky top-0 z-40 bg-slate-900 text-white shadow-md border-b border-slate-800">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-lg shadow-inner">
+          ⚡
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-bold text-base sm:text-lg tracking-tight">日本高端硬件捡漏与比价工作台</h1>
+            <span class="hidden md:inline-block text-[11px] bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-full font-medium">JP Hardware Deal Radar</span>
+          </div>
+          <p class="text-[11px] text-slate-400 hidden sm:block">Mercari · Yahoo!拍卖 · Yahoo!フリマ · 中古店/量贩店 Outlet 持续监控</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 sm:gap-3">
+        <span id="feedSyncStatus" class="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-mono-num">⏳ 等待同步...</span>
+        <button onclick="syncLiveFeed(true)" title="立即从 NAS 监控数据源拉取最新商品" class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition">
+          <span>🔄</span>
+          <span class="hidden sm:inline">同步监控</span>
+        </button>
+        <button onclick="openRulesModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs sm:text-sm font-medium border border-slate-700 transition">
+          <span>⚙️</span>
+          <span>监控规则</span>
+          <span class="bg-emerald-500/20 text-emerald-300 text-[10px] px-1.5 py-0.5 rounded font-mono-num">已激活</span>
+        </button>
+
+        <button onclick="openAddModal()" class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold shadow-sm transition">
+          <span>＋</span>
+          <span>录入 / 解析商品</span>
+        </button>
+
+        <div class="hidden lg:flex items-center gap-1.5 border-l border-slate-700 pl-3">
+          <button onclick="exportData()" title="导出 JSON 备份" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700">导出</button>
+          <label title="导入 JSON 备份" class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700 cursor-pointer">
+            导入
+            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Rules Strip -->
+    <div class="bg-slate-950/90 border-t border-slate-800/80 px-4 sm:px-6 py-2">
+      <div class="max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-slate-400 font-medium">🔒 生效策略：</span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-rose-950/80 text-rose-300 border border-rose-800/70 font-medium">
+            🚫 强制排除 Intel X540-T2
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-300 border border-emerald-800/70 font-medium">
+            🎯 Intel X550-T2 到手价目标 &lt; ¥5,000
+          </span>
+          <span id="activeMarginBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-950/80 text-blue-300 border border-blue-800/70">
+            🇨🇳 较闲鱼价差优势 ≥ 15%
+          </span>
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950/80 text-amber-300 border border-amber-800/70">
+            ⚠️ 未知字段严格标「待核实」
+          </span>
+        </div>
+        <div class="flex items-center gap-2 text-[11px] text-slate-400">
+          <span>一键全平台检索：</span>
+          <select id="quickSearchPreset" class="bg-slate-800 text-slate-200 border border-slate-700 rounded px-2 py-0.5 text-xs focus:outline-none">
+            <option value="X550-T2 -X540 -X540-T2">Intel X550-T2 (自动排除 X540)</option>
+            <option value="MacBook Pro M3 Max 36GB">MacBook Pro M3/M4 Max</option>
+            <option value="Mac Studio M2 Max">Mac Studio</option>
+            <option value="ROG Zephyrus RTX 4080">ROG 幻/枪神 RTX 4080+</option>
+            <option value="Alienware x16 m18 RTX">Alienware 外星人</option>
+            <option value="ThinkPad P1 X1 Carbon">ThinkPad P1 / X1</option>
+            <option value="HP ZBook Fury Studio">HP ZBook 工作站</option>
+            <option value="Lenovo Legion Pro 7i">Legion 拯救者旗舰</option>
+            <option value="SFP+ 10GbE スイッチ">10GbE SFP+ 交换机</option>
+          </select>
+          <button onclick="launchPlatformSearch('mercari')" class="px-2 py-0.5 rounded bg-red-600/80 hover:bg-red-600 text-white font-medium">Mercari</button>
+          <button onclick="launchPlatformSearch('yahoo_auc')" class="px-2 py-0.5 rounded bg-amber-600/80 hover:bg-amber-600 text-white font-medium">Y!拍卖</button>
+          <button onclick="launchPlatformSearch('yahoo_flea')" class="px-2 py-0.5 rounded bg-orange-600/80 hover:bg-orange-600 text-white font-medium">Y!フリマ</button>
+          <button onclick="launchPlatformSearch('janpara')" class="px-2 py-0.5 rounded bg-sky-600/80 hover:bg-sky-600 text-white font-medium">じゃんぱら</button>
+          <button onclick="launchPlatformSearch('hardoff')" class="px-2 py-0.5 rounded bg-teal-600/80 hover:bg-teal-600 text-white font-medium">HardOff</button>
+          <button onclick="launchPlatformSearch('apple_refurb')" class="px-2 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-white font-medium">Apple官翻</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+    <!-- KPI Summary Strip -->
+    <section class="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
+        <div class="text-xs text-slate-500 font-medium">监控池有效商品</div>
+        <div class="mt-1 flex items-baseline justify-between">
+          <span id="statTotal" class="text-2xl font-bold font-mono-num text-slate-900">0</span>
+          <span id="statExcluded" class="text-[11px] text-rose-600 font-medium">已拦截 X540: 0</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-emerald-200 shadow-sm bg-gradient-to-br from-white to-emerald-50/40">
+        <div class="text-xs text-emerald-700 font-semibold">✅ 值得买 (高性价比/破底价)</div>
+        <div class="mt-1 flex items-baseline justify-between">
+          <span id="statWorthBuy" class="text-2xl font-bold font-mono-num text-emerald-700">0</span>
+          <span class="text-[11px] text-emerald-600">优先锁定</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-amber-200 shadow-sm bg-gradient-to-br from-white to-amber-50/40">
+        <div class="text-xs text-amber-700 font-semibold">💬 可砍价后买</div>
+        <div class="mt-1 flex items-baseline justify-between">
+          <span id="statNegotiable" class="text-2xl font-bold font-mono-num text-amber-700">0</span>
+          <span class="text-[11px] text-amber-600">含日语话术</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-blue-200 shadow-sm">
+        <div class="text-xs text-blue-700 font-semibold">🌐 X550-T2 达标 (&lt;¥5,000)</div>
+        <div class="mt-1 flex items-baseline justify-between">
+          <span id="statX550Hit" class="text-2xl font-bold font-mono-num text-blue-700">0</span>
+          <span class="text-[11px] text-slate-500">排除 X540</span>
+        </div>
+      </div>
+      <div class="bg-white rounded-xl p-4 border border-slate-200 shadow-sm col-span-2 md:col-span-1">
+        <div class="text-xs text-slate-500 font-medium">已收藏 / 跟进中</div>
+        <div class="mt-1 flex items-baseline justify-between">
+          <span id="statTracked" class="text-2xl font-bold font-mono-num text-slate-800">0</span>
+          <span id="statUnverifiedCount" class="text-[11px] text-amber-600 font-medium">含待核实项: 0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Multi-Dimensional Filter & Sort Console -->
+    <section class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 space-y-3">
+      <div class="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-sm text-slate-800">🔍 多维筛选与排序控制台</span>
+          <label class="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md cursor-pointer select-none">
+            <input type="checkbox" id="filterHideExcluded" checked onchange="renderAll()" class="rounded text-blue-600" />
+            <span>自动隐藏已排除型号 (如 X540-T2)</span>
+          </label>
+          <label class="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md cursor-pointer select-none">
+            <input type="checkbox" id="filterFavOnly" onchange="renderAll()" class="rounded text-blue-600" />
+            <span>⭐ 仅看已收藏</span>
+          </label>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button onclick="openCompareModal()" id="compareBtn" class="px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 text-xs font-semibold transition">
+            📊 横向对比 (<span id="compareCount">0</span>/4)
+          </button>
+          <div class="inline-flex rounded-lg border border-slate-200 p-0.5 bg-slate-50">
+            <button onclick="setView('cards')" id="btnViewCards" class="px-2.5 py-1 rounded-md text-xs font-medium bg-white text-slate-900 shadow-sm">卡片视图</button>
+            <button onclick="setView('table')" id="btnViewTable" class="px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900">比价表格</button>
+          </div>
+          <button onclick="resetFilters()" class="text-xs text-slate-500 hover:text-slate-800 px-2 py-1">重置筛选</button>
+        </div>
+      </div>
+
+      <!-- Filter Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-2.5">
+        <input type="text" id="filterKeyword" oninput="renderAll()" placeholder="搜索型号/配置/备注..." class="col-span-2 sm:col-span-1 lg:col-span-2 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:outline-none focus:border-blue-500" />
+
+        <select id="filterCategory" onchange="renderAll()" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
+          <option value="">全部品类</option>
+          <option value="高端笔记本">高端笔记本</option>
+          <option value="MacBook Pro">MacBook Pro</option>
+          <option value="Mac Studio">Mac Studio</option>
+          <option value="10GbE网卡">10GbE 网卡</option>
+          <option value="交换机/光模块/DAC">交换机 / SFP+ / DAC / 10GBase-T</option>
+          <option value="NAS/硬盘柜/存储">NAS / 硬盘柜 / HDD / SSD</option>
+        </select>
+
+        <select id="filterPlatform" onchange="renderAll()" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
+          <option value="">全部平台/渠道</option>
+          <option value="Mercari">Mercari (メルカリ)</option>
+          <option value="Yahoo!オークション">Yahoo!オークション</option>
+          <option value="Yahoo!フリマ">Yahoo!フリマ</option>
+          <option value="日本中古店">日本中古店 (じゃんぱら/ソフマップ/イオシス等)</option>
+          <option value="电器量贩店">电器量贩店 (展示品/Outlet/整备品/特价)</option>
+        </select>
+
+        <select id="filterBrand" onchange="renderAll()" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
+          <option value="">全部品牌</option>
+          <option value="Apple">Apple</option>
+          <option value="ROG">ROG</option>
+          <option value="Alienware">Alienware</option>
+          <option value="ThinkPad">ThinkPad</option>
+          <option value="HP ZBook">HP ZBook</option>
+          <option value="Legion">Legion</option>
+          <option value="MSI">MSI</option>
+          <option value="Intel">Intel</option>
+          <option value="Mellanox/NVIDIA">Mellanox / NVIDIA</option>
+          <option value="Synology/QNAP/其他">Synology / QNAP / 其他存储网络</option>
+        </select>
+
+        <select id="filterCondition" onchange="renderAll()" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
+          <option value="">全部成色/状态</option>
+          <option value="新品特价">新品特价</option>
+          <option value="展示品">展示品</option>
+          <option value="Outlet">Outlet</option>
+          <option value="整备品">整备品 (Refurbished)</option>
+          <option value="中古A/美品">中古 A / 美品</option>
+          <option value="中古B/良品">中古 B / 良品</option>
+          <option value="中古C/有瑕疵">中古 C / 有使用痕迹</option>
+          <option value="待核实">待核实</option>
+        </select>
+
+        <select id="filterVerdict" onchange="renderAll()" class="px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg bg-white focus:outline-none focus:border-blue-500">
+          <option value="">全部购买判断</option>
+          <option value="值得买">✅ 值得买</option>
+          <option value="可砍价后买">💬 可砍价后买</option>
+          <option value="不建议">⛔ 不建议</option>
+        </select>
+
+        <div class="flex items-center gap-1.5 col-span-2 sm:col-span-1">
+          <input type="number" id="filterMaxPrice" oninput="renderAll()" placeholder="上限 (JPY)" class="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-mono-num focus:outline-none focus:border-blue-500" />
+        </div>
+      </div>
+
+      <!-- Secondary Filter & Sort Bar -->
+      <div class="flex flex-wrap items-center justify-between gap-2 pt-1 text-xs">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="text-slate-500">快捷筛选：</span>
+          <select id="filterNegotiable" onchange="renderAll()" class="px-2 py-1 border border-slate-200 rounded bg-slate-50 text-slate-700">
+            <option value="">是否可砍价: 全部</option>
+            <option value="可砍价">支持砍价 (値下げ交渉可)</option>
+            <option value="一口价/不可砍">一口价 / 门店定价</option>
+            <option value="竞拍中">拍卖竞价中</option>
+            <option value="待核实">待核实</option>
+          </select>
+          <select id="filterStatus" onchange="renderAll()" class="px-2 py-1 border border-slate-200 rounded bg-slate-50 text-slate-700">
+            <option value="">跟进进度: 全部</option>
+            <option value="未联系">未联系</option>
+            <option value="已联系">已联系卖家</option>
+            <option value="已购买">已购买 / 拿下</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500">排序依据：</span>
+          <select id="sortBy" onchange="renderAll()" class="px-2.5 py-1 border border-slate-300 rounded-lg bg-white font-medium text-slate-700">
+            <option value="verdict_desc">推荐优先级 (值得买优先)</option>
+            <option value="landed_asc">预计到手价 (从低到高)</option>
+            <option value="landed_desc">预计到手价 (从高到低)</option>
+            <option value="xianyu_diff_desc">较国内闲鱼价差优势 (从大到小)</option>
+            <option value="updated_desc">最近更新/录入时间</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Container -->
+    <section id="itemsContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <!-- Cards injected by JS -->
+    </section>
+
+    <section id="tableContainer" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
+      <table class="w-full text-left border-collapse text-xs">
+        <thead>
+          <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+            <th class="p-3 w-8"><input type="checkbox" disabled /></th>
+            <th class="p-3">判断 / 进度</th>
+            <th class="p-3">平台 & 品类</th>
+            <th class="p-3">品牌 / 型号 / 核心配置</th>
+            <th class="p-3">成色 & 砍价</th>
+            <th class="p-3 text-right">标价 / 运费 / 预计到手</th>
+            <th class="p-3 text-right">国内闲鱼对比 & 合理出价</th>
+            <th class="p-3">风险提示 / 核实状态</th>
+            <th class="p-3 text-center">操作</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody" class="divide-y divide-slate-100">
+          <!-- Rows injected by JS -->
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL 1: ADD / EDIT / SMART PARSE ITEM ==================== -->
+  <div id="itemModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <h2 id="itemModalTitle" class="font-bold text-base">录入 / 智能解析日本硬件商品</h2>
+        <button onclick="closeModal('itemModal')" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-5 max-h-[82vh] overflow-y-auto">
+        <!-- Smart Paste Parser -->
+        <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-blue-900">📋 日文商品页文本快速解析（严格防幻觉：未提及字段自动标「待核实」）</span>
+            <button type="button" onclick="parseJapaneseListing()" class="px-3 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold">提取填入表单</button>
+          </div>
+          <textarea id="rawListingText" rows="2" placeholder="粘贴 Mercari / Yahoo!拍卖 / じゃんぱら 的商品标题、价格或说明文，例如：Intel X550-T2 10GbE LANカード 動作確認済み ¥4,800 送料込み..." class="w-full text-xs p-2 rounded-lg border border-blue-200 bg-white focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <form id="itemForm" onsubmit="saveItem(event)" class="space-y-4 text-xs">
+          <input type="hidden" id="editItemId" />
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">来源平台 / 渠道 *</label>
+              <select id="fPlatform" required class="w-full p-2 border border-slate-300 rounded-lg bg-white">
+                <option value="Mercari">Mercari</option>
+                <option value="Yahoo!オークション">Yahoo!オークション</option>
+                <option value="Yahoo!フリマ">Yahoo!フリマ</option>
+                <option value="日本中古店">日本中古店</option>
+                <option value="电器量贩店">电器量贩店</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">硬件品类 *</label>
+              <select id="fCategory" required class="w-full p-2 border border-slate-300 rounded-lg bg-white">
+                <option value="10GbE网卡">10GbE网卡</option>
+                <option value="交换机/光模块/DAC">交换机/光模块/DAC</option>
+                <option value="MacBook Pro">MacBook Pro</option>
+                <option value="Mac Studio">Mac Studio</option>
+                <option value="高端笔记本">高端笔记本</option>
+                <option value="NAS/硬盘柜/存储">NAS/硬盘柜/存储</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">品牌 *</label>
+              <select id="fBrand" required class="w-full p-2 border border-slate-300 rounded-lg bg-white">
+                <option value="Intel">Intel</option>
+                <option value="Apple">Apple</option>
+                <option value="ROG">ROG</option>
+                <option value="Alienware">Alienware</option>
+                <option value="ThinkPad">ThinkPad</option>
+                <option value="HP ZBook">HP ZBook</option>
+                <option value="Legion">Legion</option>
+                <option value="MSI">MSI</option>
+                <option value="Mellanox/NVIDIA">Mellanox/NVIDIA</option>
+                <option value="Synology/QNAP/其他">Synology/QNAP/其他</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">具体型号 / 商品标题 *</label>
+              <input type="text" id="fModel" required placeholder="例如：Intel X550-T2 / MacBook Pro 16 M3 Max" class="w-full p-2 border border-slate-300 rounded-lg" />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">核心配置（留空自动标「待核实」）</label>
+              <input type="text" id="fSpecs" placeholder="例如：36GB / 1TB / 日文键盘 / 含短挡板（不确定请留空）" class="w-full p-2 border border-slate-300 rounded-lg" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">当前挂牌价 (JPY) *</label>
+              <input type="number" id="fListedPrice" required min="0" placeholder="4800" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">运费 (JPY, 留空=待核实)</label>
+              <input type="number" id="fShippingFee" min="0" placeholder="0=包邮, 留空=待核实" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">日本正常行情/史低 (JPY)</label>
+              <input type="number" id="fJpMarketPrice" min="0" placeholder="留空=待核实" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">国内闲鱼对比价 (CNY)</label>
+              <input type="number" id="fXianyuCny" min="0" placeholder="留空=待核实" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">成色 / 渠道类型</label>
+              <select id="fCondition" class="w-full p-2 border border-slate-300 rounded-lg bg-white">
+                <option value="待核实">待核实</option>
+                <option value="新品特价">新品特价</option>
+                <option value="展示品">展示品</option>
+                <option value="Outlet">Outlet</option>
+                <option value="整备品">整备品</option>
+                <option value="中古A/美品">中古A/美品</option>
+                <option value="中古B/良品">中古B/良品</option>
+                <option value="中古C/有瑕疵">中古C/有瑕疵</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">是否可砍价</label>
+              <select id="fNegotiable" class="w-full p-2 border border-slate-300 rounded-lg bg-white">
+                <option value="待核实">待核实</option>
+                <option value="可砍价">可砍价</option>
+                <option value="一口价/不可砍">一口价/不可砍</option>
+                <option value="竞拍中">竞拍中</option>
+              </select>
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">卖家信誉（留空=待核实）</label>
+              <input type="text" id="fSellerRep" placeholder="如: 好评99.5%(320件) 或留空" class="w-full p-2 border border-slate-300 rounded-lg" />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">保修状态（留空=待核实）</label>
+              <input type="text" id="fWarranty" placeholder="如: 店舗保証1ヶ月 / 无保 或留空" class="w-full p-2 border border-slate-300 rounded-lg" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">商品链接 URL</label>
+              <input type="url" id="fUrl" placeholder="https://jp.mercari.com/item/..." class="w-full p-2 border border-slate-300 rounded-lg" />
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-700 mb-1">风险提示 / 补充说明</label>
+              <input type="text" id="fRiskNotes" placeholder="如：仅本体无电源、需确认是否正版Intel Yottamark标签等" class="w-full p-2 border border-slate-300 rounded-lg" />
+            </div>
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+            <button type="button" onclick="closeModal('itemModal')" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 font-medium">取消</button>
+            <button type="submit" class="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold shadow-sm">保存并执行规则评估</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 2: JAPANESE INQUIRY & SELLER LOG ==================== -->
+  <div id="detailModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-3xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <div>
+          <h2 id="detailModalTitle" class="font-bold text-base">日语询价模板 & 卖家沟通记录</h2>
+          <p id="detailModalSub" class="text-xs text-slate-400 mt-0.5"></p>
+        </div>
+        <button onclick="closeModal('detailModal')" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+
+      <div class="p-6 space-y-5 max-h-[82vh] overflow-y-auto text-xs">
+        <!-- Smart Evaluation Summary -->
+        <div id="detailVerdictBox" class="p-4 rounded-xl border"></div>
+
+        <!-- Japanese Inquiry Generator -->
+        <div class="space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-bold text-sm text-slate-800">🇯🇵 自动生成日语询价 / 砍价模板</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="generateJpTemplate('bargain_and_verify')" class="px-2.5 py-1 rounded bg-blue-600 text-white font-medium hover:bg-blue-700">砍价 + 待核实项询问</button>
+              <button onclick="generateJpTemplate('nic_verify')" class="px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">10GbE 网卡真伪/挡板确认</button>
+              <button onclick="generateJpTemplate('laptop_verify')" class="px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">笔记本电池/充放电/键盘确认</button>
+              <button onclick="generateJpTemplate('polite_bargain')" class="px-2.5 py-1 rounded bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">礼貌单刀砍价</button>
+            </div>
+          </div>
+
+          <div class="relative">
+            <textarea id="jpTemplateOutput" rows="6" class="w-full p-3 rounded-xl border border-slate-300 bg-slate-50 font-sans text-xs leading-relaxed text-slate-800 focus:outline-none focus:border-blue-500"></textarea>
+            <button onclick="copyJpTemplate()" id="copyBtn" class="absolute bottom-3 right-3 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium shadow">
+              📋 复制日语全文
+            </button>
+          </div>
+          <p id="jpTemplateTranslation" class="text-[11px] text-slate-500 bg-slate-100/80 p-2.5 rounded-lg"></p>
+        </div>
+
+        <!-- Status & Seller Reply Log -->
+        <div class="border-t border-slate-200 pt-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-bold text-sm text-slate-800">📝 跟进状态与卖家回复记录</span>
+            <div class="flex items-center gap-2">
+              <span class="text-slate-500">当前进度：</span>
+              <select id="detailStatusSelect" onchange="updateItemStatus()" class="px-2.5 py-1 rounded-lg border border-slate-300 bg-white font-semibold text-slate-800">
+                <option value="未联系">未联系</option>
+                <option value="已联系">已联系卖家</option>
+                <option value="已购买">已购买 / 拿下</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <input type="text" id="newReplyInput" placeholder="记录卖家回复内容（例如：卖家回复含短挡板、包邮、可降价至4500日元）..." class="flex-1 p-2 border border-slate-300 rounded-lg" />
+            <button onclick="addSellerReply()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">添加记录</button>
+          </div>
+
+          <div id="replyHistoryList" class="space-y-2 max-h-40 overflow-y-auto">
+            <!-- Logs rendered here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 3: PERSISTENT RULES SETTINGS ==================== -->
+  <div id="rulesModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <h2 class="font-bold text-base">⚙️ 持久化监控规则与汇率参数配置</h2>
+        <button onclick="closeModal('rulesModal')" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">JPY → CNY 参考汇率</label>
+            <input type="number" step="0.0001" id="ruleExchangeRate" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            <p class="text-[11px] text-slate-400 mt-1">用于将日本到手价折算人民币对比闲鱼</p>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">Intel X550-T2 到手价目标上限 (JPY)</label>
+            <input type="number" id="ruleX550Max" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            <p class="text-[11px] text-slate-400 mt-1">默认 5,000 日元，低于此值直接触发「值得买」</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">较国内闲鱼最低价差优势 (%)</label>
+            <input type="number" id="ruleXianyuDiscount" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            <p class="text-[11px] text-slate-400 mt-1">日本到手价低于闲鱼该比例时触发「值得买」</p>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">可砍价溢价容忍度 (%)</label>
+            <input type="number" id="ruleBargainBuffer" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+            <p class="text-[11px] text-slate-400 mt-1">挂牌价高于目标价在此范围内判定「可砍价后买」</p>
+          </div>
+        </div>
+
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">黑名单排除关键词（逗号分隔，命中自动标「不建议」）</label>
+          <input type="text" id="ruleExcludeKeywords" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num" />
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">收货地区（用于日语运费询问模板）</label>
+            <input type="text" id="ruleShippingDest" placeholder="東京都" class="w-full p-2 border border-slate-300 rounded-lg" />
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-700 mb-1">实时监控数据源 URL (deals.json)</label>
+            <input type="url" id="ruleFeedUrl" placeholder="https://raw.githubusercontent.com/.../deals.json" class="w-full p-2 border border-slate-300 rounded-lg font-mono-num text-[11px]" />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+          <button type="button" onclick="resetDefaultSampleData()" class="text-rose-600 hover:underline font-medium">恢复初始预设商品与规则</button>
+          <div class="flex gap-2">
+            <button type="button" onclick="closeModal('rulesModal')" class="px-4 py-2 rounded-lg border border-slate-300 text-slate-700">取消</button>
+            <button type="button" onclick="saveRules()" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">保存并重算全库</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL 4: SIDE-BY-SIDE COMPARE MATRIX ==================== -->
+  <div id="compareModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-5xl w-full shadow-2xl border border-slate-200 overflow-hidden my-8">
+      <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+        <h2 class="font-bold text-base">📊 候选硬件横向参数与到手价对比矩阵</h2>
+        <button onclick="closeModal('compareModal')" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
+      </div>
+      <div id="compareContent" class="p-6 overflow-x-auto text-xs">
+        <!-- Matrix injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ==================== STATE & DEFAULT DATA ====================
+    const STORAGE_KEY_ITEMS = 'jp_hw_radar_items_v1';
+    const STORAGE_KEY_RULES = 'jp_hw_radar_rules_v1';
+
+    const DEFAULT_RULES = {
+      exchangeRate: 0.0475,
+      x550MaxJpy: 5000,
+      xianyuDiscountPct: 15,
+      bargainBufferPct: 18,
+      excludeKeywords: ['X540-T2', 'X540', 'X520-DA2'],
+      shippingDest: '東京都',
+      feedUrl: 'https://raw.githubusercontent.com/kaguya-axon/jp-hardware-radar/data/deals.json'
+    };
+
+    function safeLoad(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : fallback;
+      } catch (err) {
+        return fallback;
+      }
+    }
+
+    function safeSave(key, val) {
+      try {
+        localStorage.setItem(key, JSON.stringify(val));
+      } catch (err) {
+        // Ignore sandboxed iframe storage errors
+      }
+    }
+
+    const INITIAL_ITEMS = [
+      {
+        id: 'item-1',
+        isSample: true,
+        platform: 'Mercari',
+        category: '10GbE网卡',
+        brand: 'Intel',
+        model: 'Intel X550-T2 10GBase-T デュアルポート LANカード',
+        specs: '双电口 RJ45 / 全高挡板（短挡板待核实）',
+        listedPrice: 4600,
+        shippingFee: 0,
+        jpMarketPrice: 7500,
+        xianyuCny: 340,
+        condition: '中古A/美品',
+        negotiable: '可砍价',
+        sellerRep: '好评 99.8% (410件)',
+        warranty: '待核实',
+        url: 'https://jp.mercari.com/search?keyword=X550-T2',
+        riskNotes: '需向卖家核实芯片丝印与 Yottamark 防伪标，排除拆机山寨卡',
+        favorite: true,
+        status: '未联系',
+        replies: [],
+        updatedAt: '2026-11-19 03:30'
+      },
+      {
+        id: 'item-2',
+        isSample: true,
+        platform: 'Yahoo!オークション',
+        category: '10GbE网卡',
+        brand: 'Intel',
+        model: 'Intel Ethernet Converged Network Adapter X540-T2',
+        specs: '双电口 10GbE / PCIe 2.1 x8',
+        listedPrice: 3200,
+        shippingFee: 520,
+        jpMarketPrice: 4000,
+        xianyuCny: 160,
+        condition: '中古B/良品',
+        negotiable: '一口价/不可砍',
+        sellerRep: '好评 98.9%',
+        warranty: '无保 (ジャンク扱い)',
+        url: 'https://auctions.yahoo.co.jp/search/search?p=X540-T2',
+        riskNotes: '命中全局排除规则（X540-T2 发热高/不支持2.5G/5G多速率）',
+        favorite: false,
+        status: '未联系',
+        replies: [],
+        updatedAt: '2026-11-19 02:15'
+      },
+      {
+        id: 'item-3',
+        isSample: true,
+        platform: 'Mercari',
+        category: 'MacBook Pro',
+        brand: 'Apple',
+        model: 'MacBook Pro 16インチ M3 Max (16CPU/40GPU)',
+        specs: '48GB RAM / 1TB SSD / US配列キーボード',
+        listedPrice: 358000,
+        shippingFee: 0,
+        jpMarketPrice: 415000,
+        xianyuCny: 20500,
+        condition: '中古A/美品',
+        negotiable: '可砍价',
+        sellerRep: '好评 100% (86件)',
+        warranty: '待核实',
+        url: 'https://jp.mercari.com/search?keyword=MacBook%20Pro%20M3%20Max',
+        riskNotes: '挂牌略高于理想心理位，但支持议价且为稀缺美式键盘；需核实电池循环次数及是否监管机(MDM)',
+        favorite: true,
+        status: '已联系',
+        replies: [
+          { time: '2026-11-18 21:40', text: '已发送日语询价，询问充放电回数与33.5万日元即时成交可能性' }
+        ],
+        updatedAt: '2026-11-18 21:40'
+      },
+      {
+        id: 'item-4',
+        isSample: true,
+        platform: '电器量贩店',
+        category: '高端笔记本',
+        brand: 'ROG',
+        model: 'ASUS ROG Zephyrus G16 (2024) GU605MY 展示処分品',
+        specs: 'Core Ultra 9 185H / RTX 4090 / 32GB / 2TB OLED',
+        listedPrice: 329800,
+        shippingFee: 0,
+        jpMarketPrice: 428000,
+        xianyuCny: 19200,
+        condition: '展示品',
+        negotiable: '一口价/不可砍',
+        sellerRep: 'ヨドバシ / ビックカメラ 店頭Outlet',
+        warranty: 'メーカー保証1年付',
+        url: 'https://www.yodobashi.com/',
+        riskNotes: '量贩店展示机带完整官方1年保修，折合RMB约15,665元，远低于闲鱼同配；需现场检查OLED烧屏与机身划痕',
+        favorite: true,
+        status: '未联系',
+        replies: [],
+        updatedAt: '2026-11-18 19:05'
+      },
+      {
+        id: 'item-5',
+        isSample: true,
+        platform: 'Yahoo!フリマ',
+        category: '10GbE网卡',
+        brand: 'Intel',
+        model: 'Intel X550-T2 バルク品 (サーバー抜取)',
+        specs: '待核实',
+        listedPrice: 5800,
+        shippingFee: null,
+        jpMarketPrice: 7500,
+        xianyuCny: 330,
+        condition: '待核实',
+        negotiable: '可砍价',
+        sellerRep: '待核实',
+        warranty: '待核实',
+        url: 'https://paypayfleamarket.yahoo.co.jp/',
+        riskNotes: '当前标价5,800日元超出5,000日元目标线，建议发券或砍价至4,500-4,800日元包邮区间再入手',
+        favorite: false,
+        status: '未联系',
+        replies: [],
+        updatedAt: '2026-11-18 16:20'
+      },
+      {
+        id: 'item-6',
+        isSample: true,
+        platform: '日本中古店',
+        category: 'Mac Studio',
+        brand: 'Apple',
+        model: 'Apple Mac Studio M2 Max (12CPU / 30GPU)',
+        specs: '32GB RAM / 512GB SSD / 电源线附',
+        listedPrice: 184800,
+        shippingFee: 0,
+        jpMarketPrice: 215000,
+        xianyuCny: 10300,
+        condition: '中古A/美品',
+        negotiable: '一口价/不可砍',
+        sellerRep: 'じゃんぱら 店舗保証1ヶ月',
+        warranty: '中古店1个月保修',
+        url: 'https://www.janpara.co.jp/',
+        riskNotes: '折合RMB约8,778元，比闲鱼低约1,500元且含店保，适合直接拿下',
+        favorite: false,
+        status: '未联系',
+        replies: [],
+        updatedAt: '2026-11-17 14:10'
+      }
+    ];
+
+    let rules = { ...DEFAULT_RULES, ...(safeLoad(STORAGE_KEY_RULES, null) || {}) };
+    let items = safeLoad(STORAGE_KEY_ITEMS, null) || INITIAL_ITEMS.map(x => ({ ...x }));
+    let currentView = 'cards';
+    let selectedCompareIds = new Set();
+    let activeDetailItemId = null;
+
+    function persistState() {
+      safeSave(STORAGE_KEY_ITEMS, items);
+      safeSave(STORAGE_KEY_RULES, rules);
+    }
+
+    // ==================== CORE EVALUATION & PRICING ENGINE ====================
+    function evaluateItem(item) {
+      const textBlob = `${item.model} ${item.specs} ${item.riskNotes}`.toUpperCase();
+      const matchedExclude = rules.excludeKeywords.find(kw => kw.trim() && textBlob.includes(kw.trim().toUpperCase()));
+
+      const hasShipping = item.shippingFee !== null && item.shippingFee !== '' && !isNaN(Number(item.shippingFee));
+      const shippingNum = hasShipping ? Number(item.shippingFee) : 0;
+      const landedJpy = Number(item.listedPrice) + shippingNum;
+      const landedUnverified = !hasShipping;
+
+      const landedCny = Math.round(landedJpy * rules.exchangeRate);
+      const hasXianyu = item.xianyuCny !== null && item.xianyuCny !== '' && Number(item.xianyuCny) > 0;
+      const xianyuDiffCny = hasXianyu ? Number(item.xianyuCny) - landedCny : null;
+      const xianyuSavePct = hasXianyu ? Math.round(((Number(item.xianyuCny) - landedCny) / Number(item.xianyuCny)) * 100) : null;
+
+      // Count unverified critical attributes
+      const unverifiedFields = [];
+      if (!item.specs || item.specs === '待核实') unverifiedFields.push('配置细节');
+      if (landedUnverified) unverifiedFields.push('运费');
+      if (!item.sellerRep || item.sellerRep === '待核实') unverifiedFields.push('卖家信誉');
+      if (!item.warranty || item.warranty === '待核实') unverifiedFields.push('保修');
+      if (!hasXianyu) unverifiedFields.push('国内对比价');
+
+      // Check if X550-T2
+      const isX550 = textBlob.includes('X550-T2') || textBlob.includes('X550');
+
+      // Determine Target Bid Range (JPY)
+      let targetLow = Math.round(landedJpy * 0.85 / 100) * 100;
+      let targetHigh = Math.round(landedJpy * 0.92 / 100) * 100;
+
+      if (isX550) {
+        targetLow = Math.min(4200, Math.round(rules.x550MaxJpy * 0.84 / 100) * 100);
+        targetHigh = rules.x550MaxJpy;
+      } else if (hasXianyu) {
+        const parityJpy = Math.round((Number(item.xianyuCny) * (1 - rules.xianyuDiscountPct / 100)) / rules.exchangeRate / 100) * 100;
+        targetLow = Math.round(parityJpy * 0.90 / 100) * 100;
+        targetHigh = parityJpy;
+      } else if (item.jpMarketPrice && Number(item.jpMarketPrice) > 0) {
+        targetLow = Math.round(Number(item.jpMarketPrice) * 0.78 / 100) * 100;
+        targetHigh = Math.round(Number(item.jpMarketPrice) * 0.86 / 100) * 100;
+      }
+
+      // Verdict Decision Tree
+      let verdict = '可砍价后买';
+      let reason = '';
+
+      if (matchedExclude) {
+        verdict = '不建议';
+        reason = `命中排除规则 [${matchedExclude}]，自动过滤拦截`;
+      } else if (isX550) {
+        if (landedJpy <= rules.x550MaxJpy && !landedUnverified) {
+          verdict = '值得买';
+          reason = `X550-T2 到手价 ¥${landedJpy.toLocaleString()} ≤ 目标上限 ¥${rules.x550MaxJpy.toLocaleString()}`;
+        } else if (landedJpy <= rules.x550MaxJpy * (1 + rules.bargainBufferPct / 100)) {
+          verdict = '可砍价后买';
+          reason = `当前 ¥${landedJpy.toLocaleString()} 略超 ¥${rules.x550MaxJpy.toLocaleString()} 目标，建议砍价至 ¥${targetLow.toLocaleString()}~¥${targetHigh.toLocaleString()}`;
+        } else {
+          verdict = '不建议';
+          reason = `价格显著高于 X550-T2 目标线 (¥${rules.x550MaxJpy.toLocaleString()})`;
+        }
+      } else {
+        const beatXianyu = hasXianyu && xianyuSavePct >= rules.xianyuDiscountPct;
+        const beatJpMarket = item.jpMarketPrice && landedJpy <= Number(item.jpMarketPrice) * 0.86;
+
+        if (beatXianyu || beatJpMarket) {
+          verdict = '值得买';
+          reason = beatXianyu
+            ? `折合 ¥${landedCny} RMB，较国内闲鱼便宜 ${xianyuSavePct}% (省 ¥${xianyuDiffCny})`
+            : `低于日本正常行情 ${Math.round((1 - landedJpy / item.jpMarketPrice) * 100)}%`;
+        } else if (item.negotiable === '可砍价' || (hasXianyu && landedCny <= Number(item.xianyuCny) * 1.05)) {
+          verdict = '可砍价后买';
+          reason = `具备议价空间，砍至 ¥${targetLow.toLocaleString()}~¥${targetHigh.toLocaleString()} JPY 后性价比突出`;
+        } else {
+          verdict = '不建议';
+          reason = hasXianyu
+            ? `折合 ¥${landedCny} RMB，对比闲鱼 (¥${item.xianyuCny}) 无明显价格优势且不可议价`
+            : `缺少价格优势支撑，且未达破底价阈值`;
+        }
+      }
+
+      return {
+        matchedExclude,
+        isX550,
+        landedJpy,
+        landedUnverified,
+        landedCny,
+        hasXianyu,
+        xianyuDiffCny,
+        xianyuSavePct,
+        targetLow,
+        targetHigh,
+        verdict,
+        reason,
+        unverifiedFields
+      };
+    }
+
+    // ==================== RENDERING ====================
+    function renderBadge(val) {
+      if (!val || val === '待核实') {
+        return `<span class="badge-unverified px-1.5 py-0.5 rounded text-[11px] font-semibold">待核实</span>`;
+      }
+      return `<span class="text-slate-800 font-medium">${escapeHtml(val)}</span>`;
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function getFilteredItems() {
+      const kw = document.getElementById('filterKeyword').value.trim().toLowerCase();
+      const cat = document.getElementById('filterCategory').value;
+      const plat = document.getElementById('filterPlatform').value;
+      const brand = document.getElementById('filterBrand').value;
+      const cond = document.getElementById('filterCondition').value;
+      const verd = document.getElementById('filterVerdict').value;
+      const maxP = Number(document.getElementById('filterMaxPrice').value);
+      const neg = document.getElementById('filterNegotiable').value;
+      const stat = document.getElementById('filterStatus').value;
+      const hideEx = document.getElementById('filterHideExcluded').checked;
+      const favOnly = document.getElementById('filterFavOnly').checked;
+      const sortBy = document.getElementById('sortBy').value;
+
+      let excludedCount = 0;
+      let enriched = items.map(it => {
+        const evalRes = evaluateItem(it);
+        if (evalRes.matchedExclude) excludedCount++;
+        return { ...it, eval: evalRes };
+      });
+
+      document.getElementById('statExcluded').textContent = `已拦截 X540: ${excludedCount}`;
+
+      let filtered = enriched.filter(it => {
+        if (hideEx && it.eval.matchedExclude) return false;
+        if (favOnly && !it.favorite) return false;
+        if (cat && it.category !== cat) return false;
+        if (plat && it.platform !== plat) return false;
+        if (brand && it.brand !== brand) return false;
+        if (cond && (it.condition || '待核实') !== cond) return false;
+        if (verd && it.eval.verdict !== verd) return false;
+        if (maxP > 0 && it.eval.landedJpy > maxP) return false;
+        if (neg && (it.negotiable || '待核实') !== neg) return false;
+        if (stat && (it.status || '未联系') !== stat) return false;
+        if (kw) {
+          const hay = `${it.brand} ${it.model} ${it.specs} ${it.platform} ${it.riskNotes}`.toLowerCase();
+          if (!hay.includes(kw)) return false;
+        }
+        return true;
+      });
+
+      const verdictRank = { '值得买': 3, '可砍价后买': 2, '不建议': 1 };
+      filtered.sort((a, b) => {
+        if (sortBy === 'verdict_desc') {
+          return (verdictRank[b.eval.verdict] - verdictRank[a.eval.verdict]) || (a.eval.landedJpy - b.eval.landedJpy);
+        }
+        if (sortBy === 'landed_asc') return a.eval.landedJpy - b.eval.landedJpy;
+        if (sortBy === 'landed_desc') return b.eval.landedJpy - a.eval.landedJpy;
+        if (sortBy === 'xianyu_diff_desc') return (b.eval.xianyuDiffCny || -999999) - (a.eval.xianyuDiffCny || -999999);
+        return (b.updatedAt || '').localeCompare(a.updatedAt || '');
+      });
+
+      return { filtered, enriched };
+    }
+
+    function updateKPIs(enriched) {
+      const valid = enriched.filter(x => !x.eval.matchedExclude);
+      document.getElementById('statTotal').textContent = valid.length;
+      document.getElementById('statWorthBuy').textContent = valid.filter(x => x.eval.verdict === '值得买').length;
+      document.getElementById('statNegotiable').textContent = valid.filter(x => x.eval.verdict === '可砍价后买').length;
+      document.getElementById('statX550Hit').textContent = valid.filter(x => x.eval.isX550 && x.eval.landedJpy <= rules.x550MaxJpy).length;
+      document.getElementById('statTracked').textContent = valid.filter(x => x.favorite || x.status !== '未联系').length;
+      document.getElementById('statUnverifiedCount').textContent = `含待核实项: ${valid.filter(x => x.eval.unverifiedFields.length > 0).length}`;
+      document.getElementById('activeMarginBadge').textContent = `🇨🇳 较闲鱼价差优势 ≥ ${rules.xianyuDiscountPct}% (汇率 ${rules.exchangeRate})`;
+    }
+
+    function renderAll() {
+      const { filtered, enriched } = getFilteredItems();
+      updateKPIs(enriched);
+
+      const cardsEl = document.getElementById('itemsContainer');
+      const tableBody = document.getElementById('tableBody');
+
+      if (filtered.length === 0) {
+        cardsEl.innerHTML = `<div class="col-span-full bg-white rounded-xl border border-dashed border-slate-300 p-12 text-center text-slate-500">
+          当前筛选条件下暂无商品。您可以点击右上角 <strong>「＋ 录入 / 解析商品」</strong> 添加新的捡漏目标，或重置筛选条件。
+        </div>`;
+        tableBody.innerHTML = `<tr><td colspan="9" class="p-8 text-center text-slate-500">暂无匹配数据</td></tr>`;
+        return;
+      }
+
+      // Render Cards
+      cardsEl.innerHTML = filtered.map(item => {
+        const e = item.eval;
+        const verdictStyles = {
+          '值得买': 'bg-emerald-600 text-white border-emerald-700',
+          '可砍价后买': 'bg-amber-500 text-white border-amber-600',
+          '不建议': 'bg-rose-600 text-white border-rose-700'
+        };
+        const cardBorder = e.matchedExclude
+          ? 'border-rose-300 bg-rose-50/30'
+          : e.verdict === '值得买'
+          ? 'border-emerald-300'
+          : 'border-slate-200';
+
+        const isChecked = selectedCompareIds.has(item.id) ? 'checked' : '';
+
+        return `
+          <article class="bg-white rounded-xl border ${cardBorder} shadow-sm hover:shadow-md transition flex flex-col justify-between overflow-hidden">
+            <div class="p-4 space-y-3">
+              <!-- Top Meta Row -->
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="px-2 py-0.5 rounded-md text-xs font-bold border ${verdictStyles[e.verdict]}">
+                    ${e.verdict === '值得买' ? '✅ 值得买' : e.verdict === '可砍价后买' ? '💬 可砍价后买' : '⛔ 不建议'}
+                  </span>
+                  <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-semibold">${escapeHtml(item.platform)}</span>
+                  <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-700 text-[11px] font-medium">${escapeHtml(item.category)}</span>
+                  ${item.autoDetected ? '<span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 border border-purple-200 text-[10px] font-semibold">🤖 监控捕获</span>' : ''}
+                </div>
+
+                <div class="flex items-center gap-1.5 shrink-0">
+                  <label title="加入横向对比" class="flex items-center gap-1 text-[11px] text-slate-500 cursor-pointer bg-slate-50 px-1.5 py-0.5 rounded border border-slate-200">
+                    <input type="checkbox" ${isChecked} onchange="toggleCompare('${item.id}')" class="rounded text-indigo-600" />
+                    <span>对比</span>
+                  </label>
+                  <button onclick="toggleFavorite('${item.id}')" title="收藏" class="text-base leading-none ${item.favorite ? 'text-amber-400' : 'text-slate-300 hover:text-amber-400'}">
+                    ${item.favorite ? '★' : '☆'}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Title & Specs -->
+              <div>
+                <div class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">${escapeHtml(item.brand)}</div>
+                <h3 class="font-bold text-sm text-slate-900 leading-snug mt-0.5">${escapeHtml(item.model)}</h3>
+                <div class="mt-1.5 text-xs text-slate-600 flex items-center gap-1.5">
+                  <span class="text-slate-400 shrink-0">配置:</span>
+                  ${renderBadge(item.specs)}
+                </div>
+              </div>
+
+              <!-- Pricing Box -->
+              <div class="bg-slate-50 rounded-lg p-3 border border-slate-200/80 grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <div class="text-[11px] text-slate-500">预计日本到手价</div>
+                  <div class="font-mono-num font-bold text-base text-slate-900">
+                    ¥${e.landedJpy.toLocaleString()}
+                    ${e.landedUnverified ? '<span class="badge-unverified text-[10px] px-1 py-0.2 rounded ml-1 font-sans">运费待核实</span>' : ''}
+                  </div>
+                  <div class="text-[11px] text-slate-500 font-mono-num">
+                    挂牌 ¥${Number(item.listedPrice).toLocaleString()} + 运 ${e.landedUnverified ? '待核实' : '¥' + item.shippingFee}
+                  </div>
+                </div>
+
+                <div class="border-l border-slate-200 pl-2.5">
+                  <div class="text-[11px] text-slate-500">折合RMB vs 国内闲鱼</div>
+                  <div class="font-mono-num font-bold text-sm text-blue-700">≈ ¥${e.landedCny.toLocaleString()} RMB</div>
+                  <div class="text-[11px] font-mono-num">
+                    ${e.hasXianyu
+                      ? `闲鱼 ¥${item.xianyuCny} <span class="${e.xianyuDiffCny > 0 ? 'text-emerald-600 font-semibold' : 'text-rose-600'}">(${e.xianyuDiffCny > 0 ? '省¥' + e.xianyuDiffCny : '贵¥' + Math.abs(e.xianyuDiffCny)})</span>`
+                      : '<span class="badge-unverified px-1 rounded text-[10px] font-sans">闲鱼价待核实</span>'}
+                  </div>
+                </div>
+
+                <div class="col-span-2 pt-1.5 border-t border-slate-200/70 flex items-center justify-between">
+                  <span class="text-[11px] text-slate-600">🎯 合理出价区间:</span>
+                  <span class="font-mono-num font-bold text-xs text-indigo-700">¥${e.targetLow.toLocaleString()} ~ ¥${e.targetHigh.toLocaleString()} JPY</span>
+                </div>
+              </div>
+
+              <!-- Attributes Grid -->
+              <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+                <div class="flex justify-between">
+                  <span class="text-slate-400">成色:</span>
+                  ${renderBadge(item.condition)}
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-400">议价:</span>
+                  ${renderBadge(item.negotiable)}
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-400">信誉:</span>
+                  ${renderBadge(item.sellerRep)}
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-400">保修:</span>
+                  ${renderBadge(item.warranty)}
+                </div>
+              </div>
+
+              <!-- Judgment & Risk Reason -->
+              <div class="text-[11px] bg-amber-50/60 border border-amber-200/70 rounded-lg p-2 space-y-1">
+                <div class="font-semibold text-slate-800">💡 判定依据：${escapeHtml(e.reason)}</div>
+                ${item.riskNotes ? `<div class="text-amber-900">⚠️ 风险提示：${escapeHtml(item.riskNotes)}</div>` : ''}
+              </div>
+            </div>
+
+            <!-- Card Footer Actions -->
+            <div class="px-4 py-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between gap-2 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                  item.status === '已购买' ? 'bg-emerald-100 text-emerald-800' :
+                  item.status === '已联系' ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-700'
+                }">${escapeHtml(item.status || '未联系')}</span>
+                ${item.replies && item.replies.length > 0 ? `<span class="text-[11px] text-slate-500">(${item.replies.length}条记录)</span>` : ''}
+              </div>
+
+              <div class="flex items-center gap-1.5">
+                <button onclick="openDetailModal('${item.id}')" class="px-2.5 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-white font-medium">
+                  🇯🇵 询价/记录
+                </button>
+                <button onclick="openEditModal('${item.id}')" class="px-2 py-1 rounded-md border border-slate-300 hover:bg-white text-slate-700">
+                  编辑
+                </button>
+                ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener" class="px-2 py-1 rounded-md border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium">原链接↗</a>` : ''}
+                <button onclick="deleteItem('${item.id}')" title="删除" class="px-1.5 py-1 text-slate-400 hover:text-rose-600">🗑</button>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join('');
+
+      // Render Table Rows
+      tableBody.innerHTML = filtered.map(item => {
+        const e = item.eval;
+        const isChecked = selectedCompareIds.has(item.id) ? 'checked' : '';
+        return `
+          <tr class="hover:bg-slate-50/90 ${e.matchedExclude ? 'bg-rose-50/40' : ''}">
+            <td class="p-3"><input type="checkbox" ${isChecked} onchange="toggleCompare('${item.id}')" /></td>
+            <td class="p-3 space-y-1">
+              <div class="font-bold ${e.verdict === '值得买' ? 'text-emerald-700' : e.verdict === '可砍价后买' ? 'text-amber-600' : 'text-rose-600'}">${e.verdict}</div>
+              <div class="text-[11px] text-slate-500">${escapeHtml(item.status || '未联系')}</div>
+            </td>
+            <td class="p-3">
+              <div class="font-semibold text-slate-800">${escapeHtml(item.platform)}</div>
+              <div class="text-[11px] text-slate-500">${escapeHtml(item.category)}</div>
+              ${item.autoDetected ? '<span class="inline-block mt-0.5 px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 text-[10px] font-semibold">🤖 监控捕获</span>' : ''}
+            </td>
+            <td class="p-3 max-w-xs">
+              <div class="font-bold text-slate-900">${escapeHtml(item.brand)} · ${escapeHtml(item.model)}</div>
+              <div class="text-[11px] mt-0.5">${renderBadge(item.specs)}</div>
+            </td>
+            <td class="p-3 space-y-1">
+              <div>${renderBadge(item.condition)}</div>
+              <div>${renderBadge(item.negotiable)}</div>
+            </td>
+            <td class="p-3 text-right font-mono-num">
+              <div class="font-bold text-slate-900">¥${e.landedJpy.toLocaleString()}</div>
+              <div class="text-[11px] text-slate-500">≈ ¥${e.landedCny} RMB</div>
+              ${e.landedUnverified ? '<span class="badge-unverified text-[10px] px-1 rounded font-sans">运费待核实</span>' : ''}
+            </td>
+            <td class="p-3 text-right font-mono-num">
+              <div>${e.hasXianyu ? `闲鱼 ¥${item.xianyuCny}` : '<span class="badge-unverified text-[10px] px-1 rounded font-sans">闲鱼待核实</span>'}</div>
+              <div class="text-[11px] text-indigo-700 font-semibold">出价 ¥${e.targetLow.toLocaleString()}~${e.targetHigh.toLocaleString()}</div>
+            </td>
+            <td class="p-3 max-w-xs text-[11px] text-slate-600">
+              <div>${escapeHtml(e.reason)}</div>
+              ${item.riskNotes ? `<div class="text-amber-700 mt-0.5">⚠️ ${escapeHtml(item.riskNotes)}</div>` : ''}
+            </td>
+            <td class="p-3 text-center space-x-1 whitespace-nowrap">
+              <button onclick="openDetailModal('${item.id}')" class="px-2 py-1 rounded bg-slate-900 text-white">询价</button>
+              <button onclick="openEditModal('${item.id}')" class="px-2 py-1 rounded border border-slate-300">编辑</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // ==================== VIEW & FILTER CONTROLS ====================
+    function setView(view) {
+      currentView = view;
+      const cardsEl = document.getElementById('itemsContainer');
+      const tableEl = document.getElementById('tableContainer');
+      const btnC = document.getElementById('btnViewCards');
+      const btnT = document.getElementById('btnViewTable');
+
+      if (view === 'cards') {
+        cardsEl.classList.remove('hidden');
+        tableEl.classList.add('hidden');
+        btnC.className = 'px-2.5 py-1 rounded-md text-xs font-medium bg-white text-slate-900 shadow-sm';
+        btnT.className = 'px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900';
+      } else {
+        cardsEl.classList.add('hidden');
+        tableEl.classList.remove('hidden');
+        btnT.className = 'px-2.5 py-1 rounded-md text-xs font-medium bg-white text-slate-900 shadow-sm';
+        btnC.className = 'px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 hover:text-slate-900';
+      }
+    }
+
+    function resetFilters() {
+      document.getElementById('filterKeyword').value = '';
+      document.getElementById('filterCategory').value = '';
+      document.getElementById('filterPlatform').value = '';
+      document.getElementById('filterBrand').value = '';
+      document.getElementById('filterCondition').value = '';
+      document.getElementById('filterVerdict').value = '';
+      document.getElementById('filterMaxPrice').value = '';
+      document.getElementById('filterNegotiable').value = '';
+      document.getElementById('filterStatus').value = '';
+      document.getElementById('filterFavOnly').checked = false;
+      renderAll();
+    }
+
+    function launchPlatformSearch(platform) {
+      const raw = document.getElementById('quickSearchPreset').value.trim();
+      const tokens = raw.split(/\s+/).filter(Boolean);
+      const posTerms = tokens.filter(t => !t.startsWith('-'));
+      const negTerms = tokens.filter(t => t.startsWith('-') && t.length > 1).map(t => t.slice(1));
+      const kw = encodeURIComponent(posTerms.join(' '));
+      const excl = encodeURIComponent(negTerms.join(' '));
+      const urls = {
+        mercari: `https://jp.mercari.com/search?keyword=${kw}${excl ? `&exclude_keyword=${excl}` : ''}&status=on_sale&sort=created_time&order=desc`,
+        yahoo_auc: `https://auctions.yahoo.co.jp/search/search?p=${kw}${excl ? `&ve=${excl}` : ''}&s1=new&o1=d`,
+        yahoo_flea: `https://paypayfleamarket.yahoo.co.jp/search/${kw}?open=1&sort=openTime&order=desc`,
+        janpara: `https://www.janpara.co.jp/sale/search/result/?SSHPCODE=&OUTCLSCODE=&KEYWORDS=${kw}&CHKOUTCOM=1`,
+        hardoff: `https://netmall.hardoff.co.jp/search/?q=${kw}&s=7`,
+        apple_refurb: `https://www.apple.com/jp/shop/refurbished/mac`
+      };
+      if (urls[platform]) window.open(urls[platform], '_blank', 'noopener');
+    }
+
+    // ==================== ADD / EDIT / PARSE LOGIC ====================
+    function openAddModal() {
+      document.getElementById('itemModalTitle').textContent = '录入 / 智能解析日本硬件商品';
+      document.getElementById('editItemId').value = '';
+      document.getElementById('itemForm').reset();
+      document.getElementById('rawListingText').value = '';
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+      document.getElementById('itemModalTitle').textContent = '编辑商品信息与核实状态';
+      document.getElementById('editItemId').value = item.id;
+      document.getElementById('fPlatform').value = item.platform;
+      document.getElementById('fCategory').value = item.category;
+      document.getElementById('fBrand').value = item.brand;
+      document.getElementById('fModel').value = item.model;
+      document.getElementById('fSpecs').value = item.specs === '待核实' ? '' : item.specs;
+      document.getElementById('fListedPrice').value = item.listedPrice;
+      document.getElementById('fShippingFee').value = item.shippingFee !== null ? item.shippingFee : '';
+      document.getElementById('fJpMarketPrice').value = item.jpMarketPrice || '';
+      document.getElementById('fXianyuCny').value = item.xianyuCny || '';
+      document.getElementById('fCondition').value = item.condition || '待核实';
+      document.getElementById('fNegotiable').value = item.negotiable || '待核实';
+      document.getElementById('fSellerRep').value = item.sellerRep === '待核实' ? '' : item.sellerRep;
+      document.getElementById('fWarranty').value = item.warranty === '待核实' ? '' : item.warranty;
+      document.getElementById('fUrl').value = item.url || '';
+      document.getElementById('fRiskNotes').value = item.riskNotes || '';
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function parseJapaneseListing() {
+      const raw = document.getElementById('rawListingText').value.trim();
+      if (!raw) return;
+
+      // Extract first line or first 65 chars as model title
+      const lines = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+      document.getElementById('fModel').value = lines[0].slice(0, 80);
+
+      // Extract JPY price (e.g. ¥4,800 or 4800円)
+      const priceMatch = raw.match(/[¥￥]\s*([\d,]+)|([\d,]+)\s*円/);
+      if (priceMatch) {
+        const numStr = (priceMatch[1] || priceMatch[2]).replace(/,/g, '');
+        document.getElementById('fListedPrice').value = Number(numStr);
+      }
+
+      // Shipping detection (strictly only if explicitly stated)
+      if (/送料込み|送料無料|出品者負担/.test(raw)) {
+        document.getElementById('fShippingFee').value = 0;
+      } else {
+        document.getElementById('fShippingFee').value = ''; // leave blank -> 待核实
+      }
+
+      // Brand & Category inference from explicit keywords
+      const upper = raw.toUpperCase();
+      if (upper.includes('X550') || upper.includes('X540') || upper.includes('10GBE') || upper.includes('LANカード')) {
+        document.getElementById('fCategory').value = '10GbE网卡';
+        if (upper.includes('INTEL')) document.getElementById('fBrand').value = 'Intel';
+      } else if (upper.includes('MACBOOK')) {
+        document.getElementById('fCategory').value = 'MacBook Pro';
+        document.getElementById('fBrand').value = 'Apple';
+      } else if (upper.includes('MAC STUDIO')) {
+        document.getElementById('fCategory').value = 'Mac Studio';
+        document.getElementById('fBrand').value = 'Apple';
+      } else if (upper.includes('ROG') || upper.includes('ZEPHYRUS')) {
+        document.getElementById('fCategory').value = '高端笔记本';
+        document.getElementById('fBrand').value = 'ROG';
+      } else if (upper.includes('ALIENWARE')) {
+        document.getElementById('fCategory').value = '高端笔记本';
+        document.getElementById('fBrand').value = 'Alienware';
+      } else if (upper.includes('THINKPAD')) {
+        document.getElementById('fCategory').value = '高端笔记本';
+        document.getElementById('fBrand').value = 'ThinkPad';
+      } else if (upper.includes('ZBOOK')) {
+        document.getElementById('fCategory').value = '高端笔记本';
+        document.getElementById('fBrand').value = 'HP ZBook';
+      } else if (upper.includes('LEGION')) {
+        document.getElementById('fCategory').value = '高端笔记本';
+        document.getElementById('fBrand').value = 'Legion';
+      }
+
+      // Condition detection
+      if (/展示品/.test(raw)) document.getElementById('fCondition').value = '展示品';
+      else if (/アウトレット|OUTLET/i.test(raw)) document.getElementById('fCondition').value = 'Outlet';
+      else if (/整備済/.test(raw)) document.getElementById('fCondition').value = '整备品';
+      else if (/新品|未使用/.test(raw)) document.getElementById('fCondition').value = '新品特价';
+      else if (/美品/.test(raw)) document.getElementById('fCondition').value = '中古A/美品';
+      else document.getElementById('fCondition').value = '待核实';
+
+      // Negotiable detection
+      if (/値下げ交渉可|お値下げ可能|価格相談/.test(raw)) document.getElementById('fNegotiable').value = '可砍价';
+      else if (/値下げ不可|即決のみ/.test(raw)) document.getElementById('fNegotiable').value = '一口价/不可砍';
+      else document.getElementById('fNegotiable').value = '待核实';
+
+      // Leave unstated fields explicitly empty so they become '待核实'
+      document.getElementById('fSpecs').value = '';
+      document.getElementById('fSellerRep').value = '';
+      document.getElementById('fWarranty').value = '';
+    }
+
+    function saveItem(e) {
+      e.preventDefault();
+      const editId = document.getElementById('editItemId').value;
+      const shipRaw = document.getElementById('fShippingFee').value;
+      const jpMktRaw = document.getElementById('fJpMarketPrice').value;
+      const xyRaw = document.getElementById('fXianyuCny').value;
+
+      const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      const payload = {
+        platform: document.getElementById('fPlatform').value,
+        category: document.getElementById('fCategory').value,
+        brand: document.getElementById('fBrand').value,
+        model: document.getElementById('fModel').value.trim(),
+        specs: document.getElementById('fSpecs').value.trim() || '待核实',
+        listedPrice: Number(document.getElementById('fListedPrice').value),
+        shippingFee: shipRaw === '' ? null : Number(shipRaw),
+        jpMarketPrice: jpMktRaw === '' ? null : Number(jpMktRaw),
+        xianyuCny: xyRaw === '' ? null : Number(xyRaw),
+        condition: document.getElementById('fCondition').value || '待核实',
+        negotiable: document.getElementById('fNegotiable').value || '待核实',
+        sellerRep: document.getElementById('fSellerRep').value.trim() || '待核实',
+        warranty: document.getElementById('fWarranty').value.trim() || '待核实',
+        url: document.getElementById('fUrl').value.trim(),
+        riskNotes: document.getElementById('fRiskNotes').value.trim(),
+        updatedAt: nowStr
+      };
+
+      if (editId) {
+        const idx = items.findIndex(x => x.id === editId);
+        if (idx !== -1) {
+          items[idx] = { ...items[idx], ...payload, userEdited: true };
+        }
+      } else {
+        items.unshift({
+          id: 'item-' + Date.now(),
+          ...payload,
+          autoDetected: false,
+          userEdited: true,
+          favorite: false,
+          status: '未联系',
+          replies: []
+        });
+      }
+
+      persistState();
+      closeModal('itemModal');
+      renderAll();
+    }
+
+    function deleteItem(id) {
+      if (!confirm('确定从监控库中删除该商品记录吗？')) return;
+      items = items.filter(x => x.id !== id);
+      selectedCompareIds.delete(id);
+      updateCompareBtn();
+      persistState();
+      renderAll();
+    }
+
+    function toggleFavorite(id) {
+      const item = items.find(x => x.id === id);
+      if (item) {
+        item.favorite = !item.favorite;
+        persistState();
+        renderAll();
+      }
+    }
+
+    // ==================== JAPANESE INQUIRY & SELLER LOG MODAL ====================
+    function openDetailModal(id) {
+      const item = items.find(x => x.id === id);
+      if (!item) return;
+      activeDetailItemId = id;
+      const e = evaluateItem(item);
+
+      document.getElementById('detailModalTitle').textContent = `${item.brand} · ${item.model}`;
+      document.getElementById('detailModalSub').textContent = `${item.platform} | 挂牌 ¥${Number(item.listedPrice).toLocaleString()} | 预计到手 ¥${e.landedJpy.toLocaleString()} (≈¥${e.landedCny} RMB)`;
+
+      const box = document.getElementById('detailVerdictBox');
+      box.className = `p-4 rounded-xl border ${
+        e.verdict === '值得买' ? 'bg-emerald-50 border-emerald-200 text-emerald-950' :
+        e.verdict === '可砍价后买' ? 'bg-amber-50 border-amber-200 text-amber-950' :
+        'bg-rose-50 border-rose-200 text-rose-950'
+      }`;
+      box.innerHTML = `
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="font-bold text-sm">系统评估结论：【${e.verdict}】</span>
+          <span class="font-mono-num font-bold">建议合理出价区间：¥${e.targetLow.toLocaleString()} ~ ¥${e.targetHigh.toLocaleString()} JPY</span>
+        </div>
+        <p class="mt-1 text-xs">${escapeHtml(e.reason)}</p>
+        ${e.unverifiedFields.length > 0 ? `<p class="mt-1.5 text-[11px] font-semibold text-amber-800">⚠️ 当前存在待核实字段：[${e.unverifiedFields.join('、')}] — 下方日语模板已自动为您生成对应核实提问。</p>` : ''}
+      `;
+
+      document.getElementById('detailStatusSelect').value = item.status || '未联系';
+      generateJpTemplate('bargain_and_verify');
+      renderReplyLogs(item);
+      document.getElementById('detailModal').classList.remove('hidden');
+    }
+
+    function generateJpTemplate(mode) {
+      const item = items.find(x => x.id === activeDetailItemId);
+      if (!item) return;
+      const e = evaluateItem(item);
+      const targetBid = e.targetHigh.toLocaleString();
+
+      let jp = '';
+      let zh = '';
+
+      if (mode === 'bargain_and_verify') {
+        const questions = [];
+        if (item.specs === '待核实') questions.push('・正確な型番・スペックおよび付属品の有無');
+        if (e.landedUnverified) questions.push(`・${rules.shippingDest || '東京都'}までの送料、または送料込みへの変更可否`);
+        if (item.warranty === '待核实') questions.push('・動作保証や購入時のレシート・保証書の有無');
+        if (questions.length === 0) questions.push('・動作に不具合や目立つ傷がないかの最終確認');
+
+        jp = `コメント失礼いたします。
+こちらの「${item.model}」の購入を検討しております。
+
+購入前に以下について確認させていただけますでしょうか？
+${questions.join('\n')}
+
+また、大変恐縮ですが、もし即決購入させていただく場合、${targetBid}円（送料込み）までお値下げしていただくことは可能でしょうか？
+ご検討のほどよろしくお願いいたします。`;
+        zh = `中文释义：打扰了，我正在考虑购买这台「${item.model}」。购买前想向您确认上述「待核实」细节；另外冒昧请教，如果我立即付款购买，是否可以优惠至 ${targetBid} 日元（包邮）？请多关照。`;
+      } else if (mode === 'nic_verify') {
+        jp = `コメント失礼いたします。
+こちらの10GbE LANカードについて3点確認させてください。
+
+1. 基板上のIntelチップ刻印および裏面のYottamark（ホログラムシール）はございますでしょうか？
+2. ロープロファイル（短）とフルハイト（標準）のブラケットは両方付属しますか？
+3. 2ポートとも10Gbpsで正常にリンクアップ・動作確認済みでしょうか？
+
+問題なければ即決したいと考えておりますが、${targetBid}円にお値下げいただくことは可能でしょうか？よろしくお願いいたします。`;
+        zh = `中文释义：针对 10GbE 网卡专项核实：① 主板 Intel 芯片丝印及背面 Yottamark 防伪标是否齐全（防山寨）；② 长短双挡板是否都在；③ 双网口 10Gbps 握手测试是否正常。确认无误后期望以 ${targetBid} 日元成交。`;
+      } else if (mode === 'laptop_verify') {
+        jp = `コメント失礼いたします。
+購入を検討しており、以下の状態について教えていただけますでしょうか？
+
+1. バッテリーの充放電回数および最大容量（%）
+2. 修理歴・水没歴の有無、またアクティベーションロックやMDM（企業管理）の解除状況
+3. 純正ACアダプター・元箱の付属有無
+
+状態に問題がなければ、${targetBid}円にて即決購入させていただきたいです。ご検討よろしくお願いいたします。`;
+        zh = `中文释义：针对高端笔记本专项核实：① 电池循环次数与最大健康度百分比；② 有无维修/进水史、激活锁或企业监管锁 (MDM) 是否已完全解除；③ 原装电源与包装箱是否齐全。确认无误后希望以 ${targetBid} 日元拿下。`;
+      } else {
+        jp = `はじめまして、コメント失礼いたします。
+こちらの商品の購入を強く希望しております。
+不躾なお願いで大変恐縮ですが、${targetBid}円でお譲りいただくことは難しいでしょうか？
+可能でしたらすぐにお支払い手続きをさせていただきます。ご検討いただけますと幸いです。`;
+        zh = `中文释义：简洁礼貌单刀直入砍价模板，直接提出 ${targetBid} 日元目标心理价并承诺立即付款。`;
+      }
+
+      document.getElementById('jpTemplateOutput').value = jp;
+      document.getElementById('jpTemplateTranslation').textContent = zh;
+    }
+
+    async function copyJpTemplate() {
+      const ta = document.getElementById('jpTemplateOutput');
+      ta.select();
+      ta.setSelectionRange(0, 99999);
+      let copied = false;
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(ta.value);
+          copied = true;
+        }
+      } catch (_) {}
+      if (!copied) {
+        try {
+          copied = document.execCommand('copy');
+        } catch (_) {}
+      }
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = copied ? '✅ 已复制' : '⚠️ 请手动 Cmd+C';
+      setTimeout(() => { btn.textContent = '📋 复制日语全文'; }, 1800);
+    }
+
+    function updateItemStatus() {
+      const item = items.find(x => x.id === activeDetailItemId);
+      if (!item) return;
+      item.status = document.getElementById('detailStatusSelect').value;
+      persistState();
+      renderAll();
+    }
+
+    function addSellerReply() {
+      const item = items.find(x => x.id === activeDetailItemId);
+      const input = document.getElementById('newReplyInput');
+      const text = input.value.trim();
+      if (!item || !text) return;
+
+      const nowStr = new Date().toISOString().slice(0, 16).replace('T', ' ');
+      item.replies = item.replies || [];
+      item.replies.unshift({ time: nowStr, text });
+      if (item.status === '未联系') {
+        item.status = '已联系';
+        document.getElementById('detailStatusSelect').value = '已联系';
+      }
+      input.value = '';
+      persistState();
+      renderReplyLogs(item);
+      renderAll();
+    }
+
+    function renderReplyLogs(item) {
+      const list = document.getElementById('replyHistoryList');
+      if (!item.replies || item.replies.length === 0) {
+        list.innerHTML = `<div class="text-slate-400 italic py-2">暂无沟通记录。发送询价或收到卖家回复后可在此记录，核实后的配置/运费可直接点击卡片「编辑」回填。</div>`;
+        return;
+      }
+      list.innerHTML = item.replies.map(r => `
+        <div class="p-2.5 rounded-lg bg-slate-50 border border-slate-200 flex items-start justify-between gap-2">
+          <span class="text-slate-800">${escapeHtml(r.text)}</span>
+          <span class="font-mono-num text-[10px] text-slate-400 shrink-0">${escapeHtml(r.time)}</span>
+        </div>
+      `).join('');
+    }
+
+    // ==================== COMPARE MATRIX ====================
+    function toggleCompare(id) {
+      if (selectedCompareIds.has(id)) {
+        selectedCompareIds.delete(id);
+      } else {
+        if (selectedCompareIds.size >= 4) {
+          alert('横向对比最多同时选择 4 件商品。');
+          renderAll();
+          return;
+        }
+        selectedCompareIds.add(id);
+      }
+      updateCompareBtn();
+    }
+
+    function updateCompareBtn() {
+      document.getElementById('compareCount').textContent = selectedCompareIds.size;
+    }
+
+    function openCompareModal() {
+      if (selectedCompareIds.size < 2) {
+        alert('请先在商品卡片或表格左侧勾选至少 2 件商品（最多 4 件）进行横向对比。');
+        return;
+      }
+      const list = items.filter(x => selectedCompareIds.has(x.id)).map(x => ({ ...x, eval: evaluateItem(x) }));
+
+      const rows = [
+        { label: '购买判断', fn: x => `<strong class="${x.eval.verdict === '值得买' ? 'text-emerald-700' : x.eval.verdict === '可砍价后买' ? 'text-amber-600' : 'text-rose-600'}">${x.eval.verdict}</strong>` },
+        { label: '来源平台', fn: x => escapeHtml(x.platform) },
+        { label: '品牌 / 型号', fn: x => `<strong>${escapeHtml(x.brand)}</strong><br>${escapeHtml(x.model)}` },
+        { label: '核心配置', fn: x => renderBadge(x.specs) },
+        { label: '预计到手价 (JPY)', fn: x => `<span class="font-mono-num font-bold text-sm">¥${x.eval.landedJpy.toLocaleString()}</span> ${x.eval.landedUnverified ? '<br><span class="badge-unverified text-[10px] px-1 rounded">运费待核实</span>' : ''}` },
+        { label: '折合人民币 (CNY)', fn: x => `<span class="font-mono-num font-bold text-blue-700">≈ ¥${x.eval.landedCny.toLocaleString()}</span>` },
+        { label: '国内闲鱼对比', fn: x => x.eval.hasXianyu ? `¥${x.xianyuCny} (${x.eval.xianyuDiffCny > 0 ? '省¥' + x.eval.xianyuDiffCny : '贵¥' + Math.abs(x.eval.xianyuDiffCny)})` : renderBadge('待核实') },
+        { label: '合理出价区间', fn: x => `<span class="font-mono-num text-indigo-700 font-semibold">¥${x.eval.targetLow.toLocaleString()} ~ ¥${x.eval.targetHigh.toLocaleString()}</span>` },
+        { label: '成色 / 可否砍价', fn: x => `${renderBadge(x.condition)} / ${renderBadge(x.negotiable)}` },
+        { label: '卖家信誉 / 保修', fn: x => `${renderBadge(x.sellerRep)}<br>${renderBadge(x.warranty)}` },
+        { label: '风险提示', fn: x => escapeHtml(x.riskNotes || '无额外备注') }
+      ];
+
+      document.getElementById('compareContent').innerHTML = `
+        <table class="w-full border-collapse border border-slate-200 text-left">
+          <thead>
+            <tr class="bg-slate-100">
+              <th class="p-3 border border-slate-200 w-32 text-slate-600">对比维度</th>
+              ${list.map(x => `<th class="p-3 border border-slate-200 font-bold text-slate-900">${escapeHtml(x.brand)} · ${escapeHtml(x.category)}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td class="p-3 border border-slate-200 bg-slate-50 font-semibold text-slate-700">${r.label}</td>
+                ${list.map(x => `<td class="p-3 border border-slate-200 align-top">${r.fn(x)}</td>`).join('')}
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      document.getElementById('compareModal').classList.remove('hidden');
+    }
+
+    // ==================== PERSISTENT RULES & IMPORT/EXPORT ====================
+    function openRulesModal() {
+      document.getElementById('ruleExchangeRate').value = rules.exchangeRate;
+      document.getElementById('ruleX550Max').value = rules.x550MaxJpy;
+      document.getElementById('ruleXianyuDiscount').value = rules.xianyuDiscountPct;
+      document.getElementById('ruleBargainBuffer').value = rules.bargainBufferPct;
+      document.getElementById('ruleExcludeKeywords').value = (rules.excludeKeywords || []).join(', ');
+      document.getElementById('ruleShippingDest').value = rules.shippingDest || DEFAULT_RULES.shippingDest;
+      document.getElementById('ruleFeedUrl').value = rules.feedUrl || DEFAULT_RULES.feedUrl;
+      document.getElementById('rulesModal').classList.remove('hidden');
+    }
+
+    function saveRules() {
+      rules.exchangeRate = Number(document.getElementById('ruleExchangeRate').value) || DEFAULT_RULES.exchangeRate;
+      rules.x550MaxJpy = Number(document.getElementById('ruleX550Max').value) || DEFAULT_RULES.x550MaxJpy;
+      rules.xianyuDiscountPct = Number(document.getElementById('ruleXianyuDiscount').value) || DEFAULT_RULES.xianyuDiscountPct;
+      rules.bargainBufferPct = Number(document.getElementById('ruleBargainBuffer').value) || DEFAULT_RULES.bargainBufferPct;
+      rules.excludeKeywords = document.getElementById('ruleExcludeKeywords').value
+        .split(/[,，]/)
+        .map(s => s.trim())
+        .filter(Boolean);
+      rules.shippingDest = document.getElementById('ruleShippingDest').value.trim() || DEFAULT_RULES.shippingDest;
+      rules.feedUrl = document.getElementById('ruleFeedUrl').value.trim() || DEFAULT_RULES.feedUrl;
+
+      persistState();
+      closeModal('rulesModal');
+      renderAll();
+      syncLiveFeed(true);
+    }
+
+    function resetDefaultSampleData() {
+      if (!confirm('确定恢复初始预设商品与默认监控规则吗？当前自定义数据将被覆盖。')) return;
+      rules = { ...DEFAULT_RULES };
+      items = INITIAL_ITEMS.map(x => ({ ...x }));
+      selectedCompareIds.clear();
+      updateCompareBtn();
+      persistState();
+      closeModal('rulesModal');
+      renderAll();
+    }
+
+    function exportData() {
+      const blob = new Blob([JSON.stringify({ rules, items }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `jp-hardware-radar-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+    }
+
+    function importData(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        try {
+          const parsed = JSON.parse(ev.target.result);
+          if (parsed.rules) rules = { ...DEFAULT_RULES, ...parsed.rules };
+          if (Array.isArray(parsed.items)) items = parsed.items;
+          persistState();
+          renderAll();
+          alert('监控规则与商品库导入成功！');
+        } catch (err) {
+          alert('JSON 文件格式无效，请检查后重试。');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    // ==================== LIVE NAS FEED SYNC ====================
+    async function syncLiveFeed(manual = false) {
+      const statusEl = document.getElementById('feedSyncStatus');
+      const feedUrl = (rules.feedUrl || '').trim();
+      if (!feedUrl) {
+        if (statusEl) statusEl.textContent = '⚠️ 未配置数据源';
+        return;
+      }
+      if (manual && statusEl) {
+        statusEl.textContent = '⏳ 同步中...';
+      }
+      try {
+        const sep = feedUrl.includes('?') ? '&' : '?';
+        const resp = await fetch(`${feedUrl}${sep}t=${Date.now()}`, { cache: 'no-store' });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        const feedItems = Array.isArray(data.items) ? data.items : [];
+
+        if (feedItems.length > 0) {
+          const existingMap = new Map(items.map(it => [it.id, it]));
+          const feedIds = new Set();
+          const mergedFeed = [];
+
+          for (const fi of feedItems) {
+            if (!fi || !fi.id) continue;
+            feedIds.add(fi.id);
+            const ex = existingMap.get(fi.id);
+            if (ex) {
+              if (ex.userEdited) {
+                mergedFeed.push(ex);
+              } else {
+                mergedFeed.push({
+                  ...ex,
+                  ...fi,
+                  favorite: Boolean(ex.favorite),
+                  status: ex.status || '未联系',
+                  replies: Array.isArray(ex.replies) ? ex.replies : [],
+                  autoDetected: true
+                });
+              }
+            } else {
+              mergedFeed.push({
+                favorite: false,
+                status: '未联系',
+                replies: [],
+                ...fi,
+                autoDetected: true
+              });
+            }
+          }
+
+          // Keep manual items and user-tracked items; drop untouched sample entries once live data arrives
+          const retained = items.filter(it => {
+            if (feedIds.has(it.id)) return false;
+            if (it.isSample) {
+              return Boolean(it.userEdited || it.favorite || (it.status && it.status !== '未联系') || (it.replies && it.replies.length > 0));
+            }
+            if (!it.autoDetected) return true;
+            return Boolean(it.userEdited || it.favorite || (it.status && it.status !== '未联系') || (it.replies && it.replies.length > 0));
+          });
+
+          items = [...mergedFeed, ...retained];
+          persistState();
+          renderAll();
+
+          const ts = data.generatedAt ? new Date(data.generatedAt) : new Date();
+          const hhmm = isNaN(ts.getTime())
+            ? new Date().toTimeString().slice(0, 5)
+            : ts.toTimeString().slice(0, 5);
+          if (statusEl) {
+            statusEl.textContent = `📡 实时同步 ${hhmm} (${feedItems.length}条)`;
+            statusEl.className = 'hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-950/90 text-emerald-300 border border-emerald-700/80 text-[11px] font-mono-num';
+          }
+        } else {
+          if (statusEl) {
+            statusEl.textContent = '📡 已连接 (暂无新捕获)';
+            statusEl.className = 'hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-mono-num';
+          }
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = '⚠️ 离线/同步失败';
+          statusEl.className = 'hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-950/80 text-amber-300 border border-amber-700/80 text-[11px] font-mono-num';
+        }
+      }
+    }
+
+    // Boot
+    renderAll();
+    syncLiveFeed(false);
+    setInterval(() => syncLiveFeed(false), 120000);
+  </script>
+</body>
+</html>
